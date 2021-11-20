@@ -29,36 +29,5 @@ describe('chain_mail', () => {
 
     console.log("Your transaction 0 signature", tx0);
 
-    // fetch newly created account
-    // const newStateAccount = await program.account.stateAccount.fetch(stateAccount.publicKey);
-    // assert.equal(newStateAccount.candidateRegistrationIsActive, false);
-
   });
-
-  // it('Opening candidate registration', async () => {
-  //   const tx1 = await program.rpc.openCandidateRegistration({
-  //     accounts: {
-  //       stateAccount: stateAccount.publicKey,
-  //     }
-  //   });
-  //   console.log("Your transaction 1 signature", tx1);
-  //
-  //   // fetch newly created account
-  //   const newStateAccount = await program.account.stateAccount.fetch(stateAccount.publicKey);
-  //   assert.equal(newStateAccount.candidateRegistrationIsActive, true);
-  // });
-  //
-  // it('Closing candidate registration', async () => {
-  //   const tx1 = await program.rpc.closeCandidateRegistration({
-  //     accounts: {
-  //       stateAccount: stateAccount.publicKey,
-  //     }
-  //   });
-  //   console.log("Your transaction 2 signature", tx1);
-  //
-  //   // fetch newly created account
-  //   const newStateAccount = await program.account.stateAccount.fetch(stateAccount.publicKey);
-  //   assert.equal(newStateAccount.candidateRegistrationIsActive, false);
-  // });
-
 });
