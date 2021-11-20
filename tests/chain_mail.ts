@@ -1,6 +1,7 @@
 import * as anchor from '@project-serum/anchor';
 import { Program } from '@project-serum/anchor';
 import { ChainMail } from '../target/types/chain_mail';
+import { AccountLayout, Token, TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import * as assert from "assert";
 
 describe('chain_mail', () => {
@@ -21,39 +22,43 @@ describe('chain_mail', () => {
         stateAccount: stateAccount.publicKey,
         user: provider.wallet.publicKey,
         systemProgram: anchor.web3.SystemProgram.programId,
+        tokenProgram: TOKEN_PROGRAM_ID,
       },
       signers: [stateAccount],
     });
+
     console.log("Your transaction 0 signature", tx0);
-    // fetch newly created account
-    const newStateAccount = await program.account.stateAccount.fetch(stateAccount.publicKey);
-    assert.equal(newStateAccount.candidateRegistrationIsActive, false);
-  });
-
-  it('Opening candidate registration', async () => {
-    const tx1 = await program.rpc.openCandidateRegistration({
-      accounts: {
-        stateAccount: stateAccount.publicKey,
-      }
-    });
-    console.log("Your transaction 1 signature", tx1);
 
     // fetch newly created account
-    const newStateAccount = await program.account.stateAccount.fetch(stateAccount.publicKey);
-    assert.equal(newStateAccount.candidateRegistrationIsActive, true);
+    // const newStateAccount = await program.account.stateAccount.fetch(stateAccount.publicKey);
+    // assert.equal(newStateAccount.candidateRegistrationIsActive, false);
+
   });
 
-  it('Closing candidate registration', async () => {
-    const tx1 = await program.rpc.closeCandidateRegistration({
-      accounts: {
-        stateAccount: stateAccount.publicKey,
-      }
-    });
-    console.log("Your transaction 2 signature", tx1);
-
-    // fetch newly created account
-    const newStateAccount = await program.account.stateAccount.fetch(stateAccount.publicKey);
-    assert.equal(newStateAccount.candidateRegistrationIsActive, false);
-  });
+  // it('Opening candidate registration', async () => {
+  //   const tx1 = await program.rpc.openCandidateRegistration({
+  //     accounts: {
+  //       stateAccount: stateAccount.publicKey,
+  //     }
+  //   });
+  //   console.log("Your transaction 1 signature", tx1);
+  //
+  //   // fetch newly created account
+  //   const newStateAccount = await program.account.stateAccount.fetch(stateAccount.publicKey);
+  //   assert.equal(newStateAccount.candidateRegistrationIsActive, true);
+  // });
+  //
+  // it('Closing candidate registration', async () => {
+  //   const tx1 = await program.rpc.closeCandidateRegistration({
+  //     accounts: {
+  //       stateAccount: stateAccount.publicKey,
+  //     }
+  //   });
+  //   console.log("Your transaction 2 signature", tx1);
+  //
+  //   // fetch newly created account
+  //   const newStateAccount = await program.account.stateAccount.fetch(stateAccount.publicKey);
+  //   assert.equal(newStateAccount.candidateRegistrationIsActive, false);
+  // });
 
 });
