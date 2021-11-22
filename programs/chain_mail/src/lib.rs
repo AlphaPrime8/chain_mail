@@ -1,63 +1,114 @@
 use anchor_lang::prelude::*;
-use spl_token::instruction::AuthorityType;
-use anchor_spl::token::{self, SetAuthority, Token};
+use std::ops::Deref;
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
-
-fn print_type_of<T>(_: &T) {
-    msg!("{}", std::any::type_name::<T>())
-}
 
 #[program]
 pub mod chain_mail {
 
     use super::*;
 
-    const ESCROW_PDA_SEED: &[u8] = b"escrow";
-
-    pub fn initialize(ctx: Context<Initialize>) -> ProgramResult {
+    pub fn initialize(
+        ctx: Context<Initialize>,
+        vote_name: String,
+        bumps: VoteBumps,
+    ) -> ProgramResult {
 
         let state_account = &mut ctx.accounts.state_account;
-        state_account.candidate_registration_is_active = false;
 
-        // transfer ownership of state_account to this program with pda
-        let (pda, _bump_seed) = Pubkey::find_program_address(&[ESCROW_PDA_SEED], ctx.program_id);
-        token::set_authority(ctx.accounts.into(), AuthorityType::AccountOwner, Some(pda))?;
+        let name_bytes = vote_name.as_bytes();
+        let mut name_data = [b' '; 10];
+        name_data[..name_bytes.len()].copy_from_slice(name_bytes);
+
+        state_account.vote_name = name_data;
+        state_account.bumps = bumps;
+        state_account.candidate_registration_is_active = false;
 
         Ok(())
     }
+
+    pub fn open_registration(ctx: Context<OpenRegistration>) -> ProgramResult {
+        let state_account = &mut ctx.accounts.state_account;
+
+        if state_account.candidate_registration_is_active == true {
+            return Err(ErrorCode::RegistrationAlreadyOpen.into());
+        } else {
+            msg!("registration is now set to open");
+            state_account.candidate_registration_is_active = true;
+        }
+
+        Ok(())
+    }
+
+    pub fn register_as_candidate(ctx: Context<RegisterAsCandidate>) -> ProgramResult {
+        Ok(())
+    }
+
+
 }
 
 #[derive(Accounts)]
+#[instruction(vote_name: String, bumps: VoteBumps)]
 pub struct Initialize<'info> {
-    #[account(init, payer = user, space = 8 + 1)]
+    #[account(init,
+    seeds = [vote_name.as_bytes()],
+    bump = bumps.state_account,
+    payer = user)]
     pub state_account: Account<'info, StateAccount>,
     #[account(mut)]
     pub user: Signer<'info>,
     pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
+}
+
+#[derive(Accounts)]
+pub struct OpenRegistration<'info> {
+    #[account(seeds = [state_account.vote_name.as_ref().trim_ascii_whitespace()],
+    bump = state_account.bumps.state_account)]
+    pub state_account: Account<'info, StateAccount>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct RegisterAsCandidate<'info> {
+    #[account(seeds = [state_account.vote_name.as_ref().trim_ascii_whitespace()],
+    bump = state_account.bumps.state_account)]
+    pub state_account: Account<'info, StateAccount>,
+    pub system_program: Program<'info, System>,
 }
 
 #[account]
+#[derive(Default)]
 pub struct StateAccount {
+    pub vote_name: [u8; 10], // Setting an arbitrary max of ten characters in the ido name.
+    pub bumps: VoteBumps,
     pub candidate_registration_is_active: bool,
 }
 
-impl<'info> From<&mut Initialize<'info>>
-for CpiContext<'_, '_, '_, 'info, SetAuthority<'info>>
-{
-    fn from(accounts: &mut Initialize<'info>) -> Self {
-        //TODO set the SetAuthority params aptly
-        let cpi_accounts = SetAuthority {
-            account_or_mint: accounts
-                .state_account
-                .to_account_info()
-                .clone(),
-            current_authority: accounts.state_account.to_account_info().clone(),
-        };
-        let cpi_program = accounts.system_program.to_account_info();
-        CpiContext::new(cpi_program, cpi_accounts)
-    }
+#[derive(AnchorSerialize, AnchorDeserialize, Default, Clone)]
+pub struct VoteBumps {
+    pub state_account: u8,
 }
 
+#[error]
+pub enum ErrorCode {
+    #[msg("Registration is already open.")]
+    RegistrationAlreadyOpen,
+}
 
+/// Trait to allow trimming ascii whitespace from a &[u8].
+pub trait TrimAsciiWhitespace {
+    /// Trim ascii whitespace (based on `is_ascii_whitespace()`) from the
+    /// start and end of a slice.
+    fn trim_ascii_whitespace(&self) -> &[u8];
+}
+
+impl<T: Deref<Target = [u8]>> TrimAsciiWhitespace for T {
+    fn trim_ascii_whitespace(&self) -> &[u8] {
+        let from = match self.iter().position(|x| !x.is_ascii_whitespace()) {
+            Some(i) => i,
+            None => return &self[0..0],
+        };
+        let to = self.iter().rposition(|x| !x.is_ascii_whitespace()).unwrap();
+        &self[from..=to]
+    }
+}
