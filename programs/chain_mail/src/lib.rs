@@ -1,12 +1,15 @@
 use anchor_lang::prelude::*;
 use std::ops::Deref;
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+// declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("7UyzMpfjUUNVzU8Wzi11DhzBmoK7XG6dBvwpwfVerPAx");
 
 #[program]
 pub mod chain_mail {
 
     use super::*;
+
+    const ESCROW_PDA_SEED: &[u8] = b"test_ido";
 
     pub fn initialize(
         ctx: Context<Initialize>,
@@ -28,7 +31,14 @@ pub mod chain_mail {
     }
 
     pub fn open_registration(ctx: Context<OpenRegistration>) -> ProgramResult {
+
         let state_account = &mut ctx.accounts.state_account;
+
+        // confirm correct state_account is passed in
+        let (pda, _bump_seed) = Pubkey::find_program_address(&[ESCROW_PDA_SEED], ctx.program_id);
+        if pda.key() != *state_account.to_account_info().key {
+            return Err(ErrorCode::InvalidStateAccount.into());
+        }
 
         if state_account.candidate_registration_is_active == true {
             return Err(ErrorCode::RegistrationAlreadyOpen.into());
@@ -41,6 +51,7 @@ pub mod chain_mail {
     }
 
     pub fn register_as_candidate(ctx: Context<RegisterAsCandidate>) -> ProgramResult {
+        msg!("successfully inside of register_as_candidate");
         Ok(())
     }
 
@@ -70,9 +81,6 @@ pub struct OpenRegistration<'info> {
 
 #[derive(Accounts)]
 pub struct RegisterAsCandidate<'info> {
-    #[account(seeds = [state_account.vote_name.as_ref().trim_ascii_whitespace()],
-    bump = state_account.bumps.state_account)]
-    pub state_account: Account<'info, StateAccount>,
     pub system_program: Program<'info, System>,
 }
 
@@ -93,6 +101,8 @@ pub struct VoteBumps {
 pub enum ErrorCode {
     #[msg("Registration is already open.")]
     RegistrationAlreadyOpen,
+    #[msg("Invalid State Account.")]
+    InvalidStateAccount,
 }
 
 /// Trait to allow trimming ascii whitespace from a &[u8].

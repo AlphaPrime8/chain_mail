@@ -22,6 +22,9 @@ describe('chain_mail', () => {
     );
     bumps.stateAccount = stateAccountBump;
 
+    console.log("Calling initialize with \nstateAccount: %s\nnump: %s\nuser: %s\nprogram_id: %s",
+        stateAccount.toString(), stateAccountBump, provider.wallet.publicKey.toString(), program.programId.toString());
+
     const tx0 = await program.rpc.initialize(
         voteName,
         bumps,
